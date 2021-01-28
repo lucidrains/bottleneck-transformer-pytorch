@@ -1,6 +1,5 @@
 import torch
 from torch import nn, einsum
-import torch.nn.functional as F
 
 from einops import rearrange, repeat
 
@@ -131,7 +130,7 @@ class BottleBlock(nn.Module):
             kernel_size, stride, padding = (3, 2, 1) if downsample else (1, 1, 0)
 
             self.shortcut = nn.Sequential(
-                nn.Conv2d(dim, dim_out, kernel_size, stride = stride, padding = (padding, padding), bias = False),
+                nn.Conv2d(dim, dim_out, kernel_size, stride = stride, padding = padding, bias = False),
                 nn.BatchNorm2d(dim_out),
                 activation
             )
@@ -171,7 +170,6 @@ class BottleBlock(nn.Module):
     def forward(self, x):
         shortcut = self.shortcut(x)
         x = self.net(x)
-
         x += shortcut
         return self.activation(x)
 
