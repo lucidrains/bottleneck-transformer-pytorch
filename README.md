@@ -35,7 +35,7 @@ layer = BottleStack(
 
 fmap = torch.randn(2, 256, 64, 64) # feature map from previous resnet block(s)
 
-y = layer(fmap) # (2, 2048, 32, 32)
+layer(fmap) # (2, 2048, 32, 32)
 ```
 ## Citations
 
