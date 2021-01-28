@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
   name = 'bottleneck-transformer-pytorch',
   packages = find_packages(),
-  version = '0.0.4',
+  version = '0.0.5',
   license='MIT',
   description = 'Bottleneck Transformer - Pytorch',
   author = 'Phil Wang',

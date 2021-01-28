@@ -157,9 +157,12 @@ class BottleBlock(nn.Module):
             nn.BatchNorm2d(attention_dim),
             activation,
             nn.Conv2d(attention_dim, dim_out, 1, bias = False),
-            nn.BatchNorm2d(dim_out),
-            activation
+            nn.BatchNorm2d(dim_out)
         )
+
+        # init last batch norm gamma to zero
+
+        nn.init.zeros_(self.net[-1].weight)
 
         # final activation
 
@@ -168,6 +171,7 @@ class BottleBlock(nn.Module):
     def forward(self, x):
         shortcut = self.shortcut(x)
         x = self.net(x)
+
         x += shortcut
         return self.activation(x)
 
