@@ -10,10 +10,11 @@ from einops import rearrange, repeat
 
 def rel_to_abs(x):
     b, h, l, _, device, dtype = *x.shape, x.device, x.dtype
-    col_pad = torch.zeros((b, h, l, 1), device = device, dtype = dtype)
+    dd = {'device': device, 'dtype': dtype}
+    col_pad = torch.zeros((b, h, l, 1), **dd)
     x = torch.cat((x, col_pad), dim = 3)
     flat_x = rearrange(x, 'b h l c -> b h (l c)')
-    flat_pad = torch.zeros((b, h, l - 1), dtype = dtype)
+    flat_pad = torch.zeros((b, h, l - 1), **dd)
     flat_x_padded = torch.cat((flat_x, flat_pad), dim = 2)
     final_x = flat_x_padded.reshape(b, h, l + 1, 2 * l - 1)
     final_x = final_x[:, :, :l, (l-1):]
