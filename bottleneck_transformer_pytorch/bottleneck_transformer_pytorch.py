@@ -22,7 +22,7 @@ def rel_to_abs(x):
 
 def relative_logits_1d(q, rel_k):
     b, heads, h, w, dim = q.shape
-    logits = einsum('b h x y d, r d -> b h x y r', q, rel_k) * dim ** -0.5
+    logits = einsum('b h x y d, r d -> b h x y r', q, rel_k)
     logits = rearrange(logits, 'b h x y r -> b (h x) y r')
     logits = rel_to_abs(logits)
     logits = logits.reshape(b, heads, h, w, w)
@@ -39,14 +39,13 @@ class AbsPosEmb(nn.Module):
     ):
         super().__init__()
         scale = dim_head ** -0.5
-        self.scale = scale
         self.height = nn.Parameter(torch.randn(fmap_size, dim_head) * scale)
         self.width = nn.Parameter(torch.randn(fmap_size, dim_head) * scale)
 
     def forward(self, q):
         emb = rearrange(self.height, 'h d -> h () d') + rearrange(self.width, 'w d -> () w d')
         emb = rearrange(emb, ' h w d -> (h w) d')
-        logits = einsum('b h i d, j d -> b h i j', q, emb) * self.scale
+        logits = einsum('b h i d, j d -> b h i j', q, emb)
         return logits
 
 class RelPosEmb(nn.Module):
@@ -58,7 +57,6 @@ class RelPosEmb(nn.Module):
         super().__init__()
         scale = dim_head ** -0.5
         self.fmap_size = fmap_size
-        self.scale = scale
         self.rel_height = nn.Parameter(torch.randn(fmap_size * 2 - 1, dim_head) * scale)
         self.rel_width = nn.Parameter(torch.randn(fmap_size * 2 - 1, dim_head) * scale)
 
@@ -100,7 +98,9 @@ class Attention(nn.Module):
         q, k, v = self.to_qkv(fmap).chunk(3, dim = 1)
         q, k, v = map(lambda t: rearrange(t, 'b (h d) x y -> b h (x y) d', h = heads), (q, k, v))
 
-        sim = einsum('b h i d, b h j d -> b h i j', q, k) * self.scale
+        q *= self.scale
+
+        sim = einsum('b h i d, b h j d -> b h i j', q, k)
         sim += self.pos_emb(q)
 
         attn = sim.softmax(dim = -1)
