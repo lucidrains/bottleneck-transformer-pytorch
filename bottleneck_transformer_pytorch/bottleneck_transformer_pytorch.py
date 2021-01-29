@@ -220,5 +220,5 @@ class BottleStack(nn.Module):
     def forward(self, x):
         _, c, h, w = x.shape
         assert c == self.dim, f'channels of feature map {c} must match channels given at init {self.dim}'
-        assert h == self.fmap_size and w == self.fmap_size, f'height and width of feature map must match the fmap_size given at init {self.fmap_size}'
+        assert h == self.fmap_size and w == self.fmap_size, f'height and width ({h} {w}) of feature map must match the fmap_size given at init {self.fmap_size}'
         return self.net(x)
