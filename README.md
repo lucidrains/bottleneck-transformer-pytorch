@@ -66,10 +66,10 @@ resnet = resnet50()
 # model surgery
 
 backbone = list(resnet.children())
-backbone[5:] = [layer]
 
 model = nn.Sequential(
-    *backbone,
+    *backbone[:5],
+    layer,
     nn.AdaptiveAvgPool2d((1, 1)),
     nn.Flatten(1),
     nn.Linear(2048, 1000)
