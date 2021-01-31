@@ -140,23 +140,24 @@ class BottleBlock(nn.Module):
 
         # contraction and expansion
 
-        attention_dim = dim_out // proj_factor
+        attn_dim_in = dim_out // proj_factor
+        attn_dim_out = heads * dim_head
 
         self.net = nn.Sequential(
-            nn.Conv2d(dim, attention_dim, 1, bias = False),
-            nn.BatchNorm2d(attention_dim),
+            nn.Conv2d(dim, attn_dim_in, 1, bias = False),
+            nn.BatchNorm2d(attn_dim_in),
             activation,
             Attention(
-                dim = attention_dim,
+                dim = attn_dim_in,
                 fmap_size = fmap_size,
                 heads = heads,
                 dim_head = dim_head,
                 rel_pos_emb = rel_pos_emb
             ),
             nn.AvgPool2d((2, 2)) if downsample else nn.Identity(),
-            nn.BatchNorm2d(attention_dim),
+            nn.BatchNorm2d(attn_dim_out),
             activation,
-            nn.Conv2d(attention_dim, dim_out, 1, bias = False),
+            nn.Conv2d(attn_dim_out, dim_out, 1, bias = False),
             nn.BatchNorm2d(dim_out)
         )
 
