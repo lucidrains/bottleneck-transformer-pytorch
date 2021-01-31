@@ -1,3 +1,4 @@
+import math
 import torch
 from torch import nn, einsum
 
@@ -7,6 +8,9 @@ from einops import rearrange, repeat
 # https://gist.github.com/aravindsrinivas/56359b79f0ce4449bcb04ab4b56a57a2
 
 # positional embedding helpers
+
+def pair(x):
+    return (x, x) if not isinstance(x, tuple) else x
 
 def rel_to_abs(x):
     b, h, l, _, device, dtype = *x.shape, x.device, x.dtype
@@ -38,9 +42,10 @@ class AbsPosEmb(nn.Module):
         dim_head
     ):
         super().__init__()
+        height, width = pair(fmap_size)
         scale = dim_head ** -0.5
-        self.height = nn.Parameter(torch.randn(fmap_size, dim_head) * scale)
-        self.width = nn.Parameter(torch.randn(fmap_size, dim_head) * scale)
+        self.height = nn.Parameter(torch.randn(height, dim_head) * scale)
+        self.width = nn.Parameter(torch.randn(width, dim_head) * scale)
 
     def forward(self, q):
         emb = rearrange(self.height, 'h d -> h () d') + rearrange(self.width, 'w d -> () w d')
@@ -55,13 +60,16 @@ class RelPosEmb(nn.Module):
         dim_head
     ):
         super().__init__()
+        height, width = pair(fmap_size)
         scale = dim_head ** -0.5
         self.fmap_size = fmap_size
-        self.rel_height = nn.Parameter(torch.randn(fmap_size * 2 - 1, dim_head) * scale)
-        self.rel_width = nn.Parameter(torch.randn(fmap_size * 2 - 1, dim_head) * scale)
+        self.rel_height = nn.Parameter(torch.randn(height * 2 - 1, dim_head) * scale)
+        self.rel_width = nn.Parameter(torch.randn(width * 2 - 1, dim_head) * scale)
 
     def forward(self, q):
-        q = rearrange(q, 'b h (x y) d -> b h x y d', x = self.fmap_size)
+        h, w = self.fmap_size
+
+        q = rearrange(q, 'b h (x y) d -> b h x y d', x = h, y = w)
         rel_logits_w = relative_logits_1d(q, self.rel_width)
         rel_logits_w = rearrange(rel_logits_w, 'b h x i y j-> b h (x y) (i j)')
 
@@ -193,6 +201,8 @@ class BottleStack(nn.Module):
         activation = nn.ReLU()
     ):
         super().__init__()
+        fmap_size = pair(fmap_size)
+
         self.dim = dim
         self.fmap_size = fmap_size
 
@@ -202,7 +212,9 @@ class BottleStack(nn.Module):
             is_first = i == 0
             dim = (dim if is_first else dim_out)
             layer_downsample = is_first and downsample
-            layer_fmap_size = fmap_size // (2 if downsample and not is_first else 1)
+
+            fmap_divisor = (2 if downsample and not is_first else 1)
+            layer_fmap_size = tuple(map(lambda t: t // fmap_divisor, fmap_size))
 
             layers.append(BottleBlock(
                 dim = dim,
@@ -221,5 +233,5 @@ class BottleStack(nn.Module):
     def forward(self, x):
         _, c, h, w = x.shape
         assert c == self.dim, f'channels of feature map {c} must match channels given at init {self.dim}'
-        assert h == self.fmap_size and w == self.fmap_size, f'height and width ({h} {w}) of feature map must match the fmap_size given at init {self.fmap_size}'
+        assert h == self.fmap_size[0] and w == self.fmap_size[1], f'height and width ({h} {w}) of feature map must match the fmap_size given at init {self.fmap_size}'
         return self.net(x)
