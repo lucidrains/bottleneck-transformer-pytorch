@@ -2,7 +2,7 @@ import math
 import torch
 from torch import nn, einsum
 
-from einops import rearrange, repeat
+from einops import rearrange
 
 # translated from tensorflow code
 # https://gist.github.com/aravindsrinivas/56359b79f0ce4449bcb04ab4b56a57a2
@@ -11,6 +11,12 @@ from einops import rearrange, repeat
 
 def pair(x):
     return (x, x) if not isinstance(x, tuple) else x
+
+def expand_dim(t, dim, k):
+    t = t.unsqueeze(dim = dim)
+    expand_shape = [-1] * len(t.shape)
+    expand_shape[dim] = k
+    return t.expand(*expand_shape)
 
 def rel_to_abs(x):
     b, h, l, _, device, dtype = *x.shape, x.device, x.dtype
@@ -30,7 +36,7 @@ def relative_logits_1d(q, rel_k):
     logits = rearrange(logits, 'b h x y r -> b (h x) y r')
     logits = rel_to_abs(logits)
     logits = logits.reshape(b, heads, h, w, w)
-    logits = repeat(logits, 'b h x y j -> b h x i y j', i = h)
+    logits = expand_dim(logits, dim = 3, k = h)
     return logits
 
 # positional embeddings
