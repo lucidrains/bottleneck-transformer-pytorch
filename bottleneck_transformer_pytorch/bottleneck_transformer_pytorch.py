@@ -112,10 +112,10 @@ class Attention(nn.Module):
         q, k, v = self.to_qkv(fmap).chunk(3, dim = 1)
         q, k, v = map(lambda t: rearrange(t, 'b (h d) x y -> b h (x y) d', h = heads), (q, k, v))
 
-        q *= self.scale
+        q = q * self.scale
 
         sim = einsum('b h i d, b h j d -> b h i j', q, k)
-        sim += self.pos_emb(q)
+        sim = sim + self.pos_emb(q)
 
         attn = sim.softmax(dim = -1)
 
@@ -186,7 +186,7 @@ class BottleBlock(nn.Module):
     def forward(self, x):
         shortcut = self.shortcut(x)
         x = self.net(x)
-        x += shortcut
+        x = x + shortcut
         return self.activation(x)
 
 # main bottle stack
